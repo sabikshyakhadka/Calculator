@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reckon — a calculator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Work+Sans:wght@400;500;600;700&display=swap');
+
+  :root{
+    --body-metal-1: #34343a;
+    --body-metal-2: #232327;
+    --panel: #14161a;
+    --led: #ffb545;
+    --led-dim: #5a3f18;
+    --key-num: #f1efe9;
+    --key-num-text: #232327;
+    --key-op: #3f5c66;
+    --key-op-text: #f1efe9;
+    --key-fn: #8a8175;
+    --key-fn-text: #232327;
+    --key-eq: #c99a2e;
+    --key-eq-text: #201a08;
+    --shadow-deep: rgba(0,0,0,0.55);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    background: radial-gradient(ellipse at top, #3a3a40, #17171a 70%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Work Sans', sans-serif;
+    padding: 24px;
+  }
+
+  .device {
+    width: 340px;
+    max-width: 100%;
+    background: linear-gradient(160deg, var(--body-metal-1), var(--body-metal-2));
+    border-radius: 22px;
+    padding: 20px 18px 22px;
+    box-shadow:
+      0 30px 60px -20px var(--shadow-deep),
+      inset 0 1px 0 rgba(255,255,255,0.08),
+      inset 0 -2px 6px rgba(0,0,0,0.4);
+    position: relative;
+  }
+
+  .brand {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 2px 6px 14px;
+  }
+
+  .brand-name {
+    font-family: 'Work Sans', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.02em;
+    color: #d8d5cc;
+  }
+
+  .brand-tag {
+    font-size: 10px;
+    color: #85807a;
+    letter-spacing: 0.03em;
+  }
+
+  .screen {
+    background: var(--panel);
+    border-radius: 10px;
+    padding: 18px 16px 14px;
+    margin-bottom: 16px;
+    box-shadow: inset 0 3px 10px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.03);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .screen::after{
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.015) 0px,
+      rgba(255,255,255,0.015) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    pointer-events: none;
+  }
+
+  .history {
+    min-height: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--led-dim);
+    text-align: right;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .history::-webkit-scrollbar{ display:none; }
+
+  .result {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    font-size: 40px;
+    color: var(--led);
+    text-align: right;
+    text-shadow: 0 0 12px rgba(255,181,69,0.45);
+    white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-top: 4px;
+    transition: opacity 0.08s ease;
+  }
+  .result::-webkit-scrollbar{ display:none; }
+
+  .keys {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  button.key {
+    border: none;
+    border-radius: 10px;
+    font-family: 'Work Sans', sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    padding: 16px 0;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.05s ease, box-shadow 0.05s ease;
+  }
+
+  .key-num {
+    background: var(--key-num);
+    color: var(--key-num-text);
+    box-shadow: 0 3px 0 #b9b6ac, 0 5px 8px rgba(0,0,0,0.35);
+  }
+  .key-op {
+    background: var(--key-op);
+    color: var(--key-op-text);
+    box-shadow: 0 3px 0 #29404a, 0 5px 8px rgba(0,0,0,0.35);
+    font-size: 20px;
+  }
+  .key-fn {
+    background: var(--key-fn);
+    color: var(--key-fn-text);
+    box-shadow: 0 3px 0 #635c52, 0 5px 8px rgba(0,0,0,0.35);
+    font-size: 15px;
+  }
+  .key-eq {
+    background: var(--key-eq);
+    color: var(--key-eq-text);
+    box-shadow: 0 3px 0 #8a6c1f, 0 5px 8px rgba(0,0,0,0.35);
+    grid-row: span 2;
+    font-size: 22px;
+  }
+
+  button.key:active,
+  button.key.pressed {
+    transform: translateY(3px);
+    box-shadow: 0 0 0 rgba(0,0,0,0), 0 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .span-2 { grid-column: span 2; }
+
+  @media (max-width: 380px){
+    .result { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="device">
+  <div class="brand">
+    <span class="brand-name">Reckon</span>
+    <span class="brand-tag">MODEL R-1</span>
+  </div>
+
+  <div class="screen">
+    <div class="history" id="history">&nbsp;</div>
+    <div class="result" id="result">0</div>
+  </div>
+
+  <div class="keys" id="keys">
+    <button class="key key-fn" data-action="clear">C</button>
+    <button class="key key-fn" data-action="backspace">⌫</button>
+    <button class="key key-fn" data-action="percent">%</button>
+    <button class="key key-op" data-action="op" data-value="÷">÷</button>
+
+    <button class="key key-num" data-action="digit" data-value="7">7</button>
+    <button class="key key-num" data-action="digit" data-value="8">8</button>
+    <button class="key key-num" data-action="digit" data-value="9">9</button>
+    <button class="key key-op" data-action="op" data-value="×">×</button>
+
+    <button class="key key-num" data-action="digit" data-value="4">4</button>
+    <button class="key key-num" data-action="digit" data-value="5">5</button>
+    <button class="key key-num" data-action="digit" data-value="6">6</button>
+    <button class="key key-op" data-action="op" data-value="−">−</button>
+
+    <button class="key key-num" data-action="digit" data-value="1">1</button>
+    <button class="key key-num" data-action="digit" data-value="2">2</button>
+    <button class="key key-num" data-action="digit" data-value="3">3</button>
+    <button class="key key-op" data-action="op" data-value="+">+</button>
+
+    <button class="key key-num span-2" data-action="digit" data-value="0">0</button>
+    <button class="key key-num" data-action="decimal">.</button>
+    <button class="key key-eq" data-action="equals">=</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const resultEl = document.getElementById('history');
+  const displayEl = document.getElementById('result');
+  const keysEl = document.getElementById('keys');
+
+  let current = "0";
+  let previous = null;
+  let operator = null;
+  let justEvaluated = false;
+
+  const opSymbolToJs = { '÷':'/', '×':'*', '−':'-', '+':'+' };
+
+  function formatNumber(numStr){
+    if (numStr === "Error") return numStr;
+    const [intPart, decPart] = numStr.split(".");
+    const withCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return decPart !== undefined ? withCommas + "." + decPart : withCommas;
+  }
+
+  function updateDisplay(){
+    displayEl.textContent = formatNumber(current);
+    if (previous !== null && operator){
+      resultEl.textContent = `${formatNumber(previous)} ${operator}`;
+    } else if (!previous) {
+      resultEl.textContent = "\u00A0";
+    }
+  }
+
+  function inputDigit(d){
+    if (justEvaluated){
+      current = d;
+      justEvaluated = false;
+      return;
+    }
+    if (current === "0") current = d;
+    else if (current.replace('-','').replace('.','').length < 15) current += d;
+  }
+
+  function inputDecimal(){
+    if (justEvaluated){
+      current = "0.";
+      justEvaluated = false;
+      return;
+    }
+    if (!current.includes(".")) current += ".";
+  }
+
+  function clearAll(){
+    current = "0";
+    previous = null;
+    operator = null;
+    justEvaluated = false;
+  }
+
+  function backspace(){
+    if (justEvaluated) { clearAll(); return; }
+    current = current.length > 1 ? current.slice(0, -1) : "0";
+  }
+
+  function percent(){
+    const val = parseFloat(current);
+    if (isNaN(val)) return;
+    current = String(val / 100);
+  }
+
+  function compute(a, op, b){
+    switch(op){
+      case '+': return a + b;
+      case '-': return a - b;
+      case '*': return a * b;
+      case '/': return b === 0 ? null : a / b;
+      default: return b;
+    }
+  }
+
+  function chooseOperator(nextOp){
+    if (operator && previous !== null && !justEvaluated){
+      evaluate();
+    }
+    previous = current;
+    operator = nextOp;
+    current = "0";
+    justEvaluated = false;
+  }
+
+  function evaluate(){
+    if (operator === null || previous === null) return;
+    const a = parseFloat(previous);
+    const b = parseFloat(current);
+    const jsOp = opSymbolToJs[operator];
+    const res = compute(a, jsOp, b);
+
+    if (res === null){
+      current = "Error";
+      previous = null;
+      operator = null;
+      justEvaluated = true;
+      return;
+    }
+
+    let resStr = String(Math.round((res + Number.EPSILON) * 1e10) / 1e10);
+    if (resStr.length > 16) resStr = res.toExponential(6);
+
+    current = resStr;
+    previous = null;
+    operator = null;
+    justEvaluated = true;
+  }
+
+  function flashPressed(btn){
+    btn.classList.add('pressed');
+    setTimeout(() => btn.classList.remove('pressed'), 90);
+  }
+
+  keysEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button.key');
+    if (!btn) return;
+    flashPressed(btn);
+
+    const action = btn.dataset.action;
+    const value = btn.dataset.value;
+
+    if (current === "Error" && action !== "clear") { clearAll(); }
+
+    switch(action){
+      case "digit": inputDigit(value); break;
+      case "decimal": inputDecimal(); break;
+      case "clear": clearAll(); break;
+      case "backspace": backspace(); break;
+      case "percent": percent(); break;
+      case "op": chooseOperator(value); break;
+      case "equals": evaluate(); break;
+    }
+    updateDisplay();
+  });
+
+  const keyMap = {
+    '0':'digit','1':'digit','2':'digit','3':'digit','4':'digit',
+    '5':'digit','6':'digit','7':'digit','8':'digit','9':'digit'
+  };
+
+  window.addEventListener('keydown', (e) => {
+    let selector = null;
+    if (keyMap[e.key]) selector = `[data-action="digit"][data-value="${e.key}"]`;
+    else if (e.key === '.') selector = `[data-action="decimal"]`;
+    else if (e.key === '+') selector = `[data-action="op"][data-value="+"]`;
+    else if (e.key === '-') selector = `[data-action="op"][data-value="−"]`;
+    else if (e.key === '*') selector = `[data-action="op"][data-value="×"]`;
+    else if (e.key === '/') selector = `[data-action="op"][data-value="÷"]`;
+    else if (e.key === 'Enter' || e.key === '=') selector = `[data-action="equals"]`;
+    else if (e.key === 'Backspace') selector = `[data-action="backspace"]`;
+    else if (e.key === 'Escape') selector = `[data-action="clear"]`;
+    else if (e.key === '%') selector = `[data-action="percent"]`;
+
+    if (selector){
+      e.preventDefault();
+      const btn = keysEl.querySelector(selector);
+      if (btn) btn.click();
+    }
+  });
+
+  updateDisplay();
+})();
+</script>
+
+</body>
+</html>
